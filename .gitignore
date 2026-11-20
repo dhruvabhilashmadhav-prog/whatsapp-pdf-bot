@@ -1,0 +1,27 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Local SQLite Database
+*.db
+*.sqlite3
+
+# Uploaded Media (Ephemeral local cache)
+static/uploads/images/*
+static/uploads/pdfs/*
+!static/uploads/images/.gitkeep
+!static/uploads/pdfs/.gitkeep
+
+# macOS & System files
+.DS_Store
+*.log
+cloudflared

@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Cloud PDF Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .pulse-dot {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Top Navigation & Controls Bar -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand & Status -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+          <i class="fa-brands fa-whatsapp text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold text-white tracking-tight">WhatsApp PDF Studio</h1>
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">Cloud API</span>
+          </div>
+          <div class="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
+            <span id="sse-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot inline-block"></span>
+            <span id="sse-status-text" class="text-emerald-400 font-medium">Connecting...</span>
+            <span class="text-slate-500">•</span>
+            <span class="text-slate-400">Port 8000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="flex items-center flex-wrap gap-3">
+        
+        <!-- Auto-Convert Toggle Bar -->
+        <div class="flex items-center bg-slate-900/80 border border-slate-700 px-3.5 py-1.5 rounded-xl shadow-inner">
+          <label for="auto-convert-toggle" class="flex items-center cursor-pointer space-x-2.5">
+            <span class="text-xs font-semibold text-slate-300">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i>Auto-Convert Images to PDF
+            </span>
+            <div class="relative">
+              <input type="checkbox" id="auto-convert-toggle" class="sr-only">
+              <div id="toggle-bg" class="block w-10 h-5 bg-slate-700 rounded-full transition-colors"></div>
+              <div id="toggle-circle" class="dot absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform"></div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Simulator Button -->
+        <button onclick="openModal('simulator-modal')" class="inline-flex items-center px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-medium rounded-xl transition shadow-sm">
+          <i class="fa-solid fa-flask-vial mr-1.5"></i> Test Simulator
+        </button>
+
+        <!-- Webhook Info Pill -->
+        <button onclick="openModal('webhook-info-modal')" class="inline-flex items-center px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/60 text-slate-300 text-xs font-medium rounded-xl transition">
+          <i class="fa-solid fa-link mr-1.5 text-teal-400"></i> Webhook Info
+        </button>
+
+        <!-- Clear All Button -->
+        <button onclick="openModal('clear-confirm-modal')" class="inline-flex items-center px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-medium rounded-xl transition">
+          <i class="fa-solid fa-trash-can mr-1.5"></i> Clear All
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col">
+    
+    <!-- Quick Statistics Banner -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      
+      <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Incoming Messages</p>
+          <h3 id="stat-messages-count" class="text-2xl font-bold text-white mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-comments"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Received Photos</p>
+          <h3 id="stat-images-count" class="text-2xl font-bold text-white mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-images"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wider text-slate-400">Generated PDFs</p>
+          <h3 id="stat-pdfs-count" class="text-2xl font-bold text-white mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-file-pdf"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3-Column Responsive Feeds Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 items-start">
+      
+      <!-- COLUMN 1: Live Text Messages -->
+      <section class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 flex flex-col h-[750px] shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            <h2 class="font-semibold text-slate-200 text-sm">1. Live Text Messages</h2>
+          </div>
+          <span id="badge-messages-count" class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">0</span>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">
+          Live stream of incoming text messages. Type <code class="bg-slate-900 text-amber-400 px-1 py-0.5 rounded">make pdf</code> on WhatsApp to trigger batch merge!
+        </p>
+
+        <!-- Message List Container -->
+        <div id="messages-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+          <!-- Empty State -->
+          <div id="messages-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+            <i class="fa-regular fa-message text-4xl mb-3 text-slate-600"></i>
+            <p class="text-sm font-medium">No messages received yet</p>
+            <p class="text-xs text-slate-500 mt-1">Incoming WhatsApp text messages will appear here in real-time.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMN 2: Received Images -->
+      <section class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 flex flex-col h-[750px] shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <h2 class="font-semibold text-slate-200 text-sm">2. Received Images</h2>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="triggerBatchMerge()" title="Merge all unconverted images" class="text-xs bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-lg transition">
+              <i class="fa-solid fa-object-group mr-1"></i>Merge All
+            </button>
+            <span id="badge-images-count" class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">0</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">
+          Images auto-convert if Auto-Convert is ON or caption has <code class="bg-slate-900 text-teal-400 px-1 py-0.5 rounded">pdf</code>. Or click Convert to PDF below.
+        </p>
+
+        <!-- Images List Container -->
+        <div id="images-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+          <!-- Empty State -->
+          <div id="images-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+            <i class="fa-regular fa-image text-4xl mb-3 text-slate-600"></i>
+            <p class="text-sm font-medium">No images received yet</p>
+            <p class="text-xs text-slate-500 mt-1">Photos sent on WhatsApp will appear here with instant conversion controls.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMN 3: Converted PDFs -->
+      <section class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 flex flex-col h-[750px] shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+            <h2 class="font-semibold text-slate-200 text-sm">3. Converted PDFs</h2>
+          </div>
+          <span id="badge-pdfs-count" class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full font-medium">0</span>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">
+          Generated via <span class="text-purple-300 font-medium">img2pdf + Pillow</span>. Click Preview or Download anytime.
+        </p>
+
+        <!-- PDFs List Container -->
+        <div id="pdfs-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+          <!-- Empty State -->
+          <div id="pdfs-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+            <i class="fa-regular fa-file-pdf text-4xl mb-3 text-slate-600"></i>
+            <p class="text-sm font-medium">No PDFs generated yet</p>
+            <p class="text-xs text-slate-500 mt-1">Converted documents will show with page counts, file size, preview, and download buttons.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- PDF Preview Modal -->
+  <div id="pdf-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-800/90">
+        <div class="flex items-center space-x-2 overflow-hidden">
+          <i class="fa-solid fa-file-pdf text-rose-400 text-lg"></i>
+          <span id="pdf-modal-title" class="font-semibold text-sm text-white truncate">PDF Preview</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <a id="pdf-modal-download" href="#" download class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition flex items-center space-x-1">
+            <i class="fa-solid fa-download mr-1"></i> Download
+          </a>
+          <button onclick="closeModal('pdf-modal')" class="text-slate-400 hover:text-white p-1 text-lg">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 bg-slate-900 relative">
+        <iframe id="pdf-modal-frame" src="" class="w-full h-full border-none"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Zoom Modal -->
+  <div id="image-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+        <span id="image-modal-title" class="text-sm font-semibold text-white truncate">Image Preview</span>
+        <button onclick="closeModal('image-modal')" class="text-slate-400 hover:text-white p-1 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-2 flex items-center justify-center overflow-auto bg-slate-950">
+        <img id="image-modal-img" src="" alt="Full view" class="max-h-[70vh] rounded-lg object-contain">
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear Confirmation Modal -->
+  <div id="clear-confirm-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center space-x-3 text-rose-400 mb-3">
+        <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">Clear All Data?</h3>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        This will permanently delete all messages, uploaded images, and generated PDFs from both SQLite database and storage folders.
+      </p>
+      <div class="mt-6 flex justify-end space-x-3">
+        <button onclick="closeModal('clear-confirm-modal')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl transition">
+          Cancel
+        </button>
+        <button onclick="executeClearAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl transition">
+          Yes, Clear Everything
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webhook Info Modal -->
+  <div id="webhook-info-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-circle-nodes text-teal-400 text-lg"></i>
+          <h3 class="text-md font-bold text-white">Meta WhatsApp Webhook Configuration</h3>
+        </div>
+        <button onclick="closeModal('webhook-info-modal')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-medium mb-1">Callback URL (Webhook)</label>
+          <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-2.5">
+            <span id="webhook-url-display" class="font-mono text-emerald-400 break-all select-all flex-1">https://your-tunnel.trycloudflare.com/webhook</span>
+            <button onclick="copyToClipboard('webhook-url-display')" class="text-slate-400 hover:text-white ml-2 text-sm" title="Copy">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-medium mb-1">Verify Token</label>
+          <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-2.5">
+            <span class="font-mono text-amber-400 select-all flex-1">antigravity_secret_123</span>
+            <button onclick="copyText('antigravity_secret_123')" class="text-slate-400 hover:text-white ml-2 text-sm" title="Copy">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-medium mb-1">Phone Number ID</label>
+          <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-2.5">
+            <span class="font-mono text-slate-300 select-all flex-1">1540027155849787</span>
+            <button onclick="copyText('1540027155849787')" class="text-slate-400 hover:text-white ml-2 text-sm" title="Copy">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/60 text-slate-400 leading-normal">
+          <p class="font-medium text-slate-300 mb-1">Webhook Subscription Fields:</p>
+          <p>In Meta Developer Dashboard, subscribe to the <code class="text-teal-400">messages</code> field.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Simulator Modal -->
+  <div id="simulator-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-flask text-indigo-400 text-lg"></i>
+          <h3 class="text-md font-bold text-white">WhatsApp Event Simulator</h3>
+        </div>
+        <button onclick="closeModal('simulator-modal')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Simulator Tabs -->
+      <div class="flex border-b border-slate-700 mb-4">
+        <button id="tab-btn-sim-text" onclick="switchSimTab('text')" class="flex-1 pb-2 font-medium text-xs text-indigo-400 border-b-2 border-indigo-500">
+          Simulate Text Message
+        </button>
+        <button id="tab-btn-sim-image" onclick="switchSimTab('image')" class="flex-1 pb-2 font-medium text-xs text-slate-400 border-b-2 border-transparent hover:text-slate-200">
+          Simulate Photo Upload
+        </button>
+      </div>
+
+      <!-- Tab 1: Text Simulation -->
+      <form id="sim-text-form" onsubmit="handleSimulateText(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Sender WhatsApp Number</label>
+          <input type="text" id="sim-text-sender" value="919876543210" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Message Text</label>
+          <textarea id="sim-text-body" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500" placeholder="Type a message or 'make pdf'..." required>Hello! Please convert my documents.</textarea>
+        </div>
+        <div class="flex space-x-2">
+          <button type="button" onclick="document.getElementById('sim-text-body').value='make pdf'" class="text-xs bg-slate-700 hover:bg-slate-600 text-amber-300 px-2 py-1 rounded-lg">
+            Quick: "make pdf"
+          </button>
+        </div>
+        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition">
+          Send Simulated Message
+        </button>
+      </form>
+
+      <!-- Tab 2: Image Simulation -->
+      <form id="sim-image-form" onsubmit="handleSimulateImage(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Sender WhatsApp Number</label>
+          <input type="text" id="sim-image-sender" value="919876543210" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Select Photo / Image</label>
+          <input type="file" id="sim-image-file" accept="image/*" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer" required>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Caption (Optional)</label>
+          <input type="text" id="sim-image-caption" placeholder="e.g. 'Contract pdf' to trigger auto-convert" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <p class="text-[11px] text-slate-500 mt-1">Tip: Add "pdf" in caption to trigger instant conversion!</p>
+        </div>
+        <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl transition">
+          Upload & Process Simulated Image
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Application JS Logic -->
+  <script>
+    // State Store
+    const state = {
+      autoConvert: false,
+      messages: [],
+      images: [],
+      pdfs: []
+    };
+
+    // Format helpers
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Just now';
+      if (!isNaN(timestamp) && Number(timestamp) > 100000000) {
+        const d = new Date(Number(timestamp) * 1000);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString();
+      }
+      return timestamp;
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-slate-800 text-slate-100 border-slate-700'
+      };
+      toast.className = `px-4 py-2.5 rounded-xl border shadow-xl text-xs font-medium transition-all transform duration-300 pointer-events-auto flex items-center space-x-2 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Modal helpers
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).classList.add('flex');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      document.getElementById(id).classList.remove('flex');
+      if (id === 'pdf-modal') {
+        document.getElementById('pdf-modal-frame').src = '';
+      }
+    }
+
+    function viewPdf(url, filename) {
+      document.getElementById('pdf-modal-title').textContent = filename;
+      document.getElementById('pdf-modal-frame').src = url;
+      document.getElementById('pdf-modal-download').href = url;
+      openModal('pdf-modal');
+    }
+
+    function zoomImage(url, title) {
+      document.getElementById('image-modal-title').textContent = title || 'Image Preview';
+      document.getElementById('image-modal-img').src = url;
+      openModal('image-modal');
+    }
+
+    function copyToClipboard(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      copyText(text);
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!', 'success');
+      });
+    }
+
+    // Toggle switch UI update
+    function updateToggleUI(enabled) {
+      state.autoConvert = enabled;
+      const toggle = document.getElementById('auto-convert-toggle');
+      const bg = document.getElementById('toggle-bg');
+      const circle = document.getElementById('toggle-circle');
+      toggle.checked = enabled;
+      if (enabled) {
+        bg.classList.replace('bg-slate-700', 'bg-emerald-500');
+        circle.classList.add('translate-x-5');
+      } else {
+        bg.classList.replace('bg-emerald-500', 'bg-slate-700');
+        circle.classList.remove('translate-x-5');
+      }
+    }
+
+    // Auto-convert toggle event listener
+    document.getElementById('auto-convert-toggle').addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      updateToggleUI(enabled);
+      try {
+        const res = await fetch('/api/settings/auto-convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        showToast(`Auto-Convert set to ${data.auto_convert ? 'ON' : 'OFF'}`, 'info');
+      } catch (err) {
+        showToast('Failed to update Auto-Convert setting', 'error');
+      }
+    });
+
+    // 1-Click Convert Image to PDF
+    async function convertImage(imageId, btnElement) {
+      if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Converting...';
+      }
+      try {
+        const res = await fetch(`/convert/${imageId}`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Image successfully converted to PDF!', 'success');
+          // Update status pill in UI
+          const pill = document.getElementById(`img-status-${imageId}`);
+          if (pill) {
+            pill.className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium';
+            pill.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Converted';
+          }
+          if (btnElement) {
+            btnElement.disabled = true;
+            btnElement.className = 'text-xs bg-slate-700/50 text-slate-500 px-2.5 py-1.5 rounded-lg cursor-not-allowed';
+            btnElement.innerHTML = '<i class="fa-solid fa-check mr-1"></i> PDF Created';
+          }
+        } else {
+          showToast(`Conversion error: ${data.detail || 'Failed'}`, 'error');
+          if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = '<i class="fa-solid fa-file-pdf mr-1"></i> Convert to PDF';
+          }
+        }
+      } catch (err) {
+        showToast('Conversion failed', 'error');
+        if (btnElement) {
+          btnElement.disabled = false;
+          btnElement.innerHTML = '<i class="fa-solid fa-file-pdf mr-1"></i> Convert to PDF';
+        }
+      }
+    }
+
+    // Trigger batch merge of unconverted images
+    async function triggerBatchMerge() {
+      try {
+        const res = await fetch('/api/convert-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showToast(`Merged images into multi-page PDF! (${data.pdf.page_count} pages)`, 'success');
+        } else if (data.status === 'no_op') {
+          showToast(data.message, 'info');
+        } else {
+          showToast(data.message || 'Batch conversion failed', 'error');
+        }
+      } catch (err) {
+        showToast('Batch merge failed', 'error');
+      }
+    }
+
+    // Render Feed Items
+    function renderMessage(msg, prepend = false) {
+      const container = document.getElementById('messages-container');
+      const emptyState = document.getElementById('messages-empty');
+      if (emptyState) emptyState.style.display = 'none';
+
+      const isMakePdf = msg.text && msg.text.trim().toLowerCase() === 'make pdf';
+
+      const item = document.createElement('div');
+      item.id = `msg-${msg.id}`;
+      item.className = 'bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 shadow-sm hover:border-slate-600 transition';
+      item.innerHTML = `
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+          <div class="flex items-center space-x-1.5">
+            <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+            <span class="font-mono font-medium text-slate-200">+${msg.sender}</span>
+          </div>
+          <span class="text-[11px] text-slate-500">${formatTime(msg.timestamp || msg.created_at)}</span>
+        </div>
+        <div class="text-xs text-slate-100 bg-slate-800/60 rounded-lg p-2.5 break-words">
+          ${msg.text}
+        </div>
+        ${isMakePdf ? `
+          <div class="mt-2 flex items-center space-x-1.5 text-[11px] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md font-medium">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Triggered Batch Multi-page PDF Merge!</span>
+          </div>
+        ` : ''}
+      `;
+
+      if (prepend) {
+        container.insertBefore(item, container.firstChild);
+      } else {
+        container.appendChild(item);
+      }
+      updateCounters();
+    }
+
+    function renderImage(img, prepend = false) {
+      const container = document.getElementById('images-container');
+      const emptyState = document.getElementById('images-empty');
+      if (emptyState) emptyState.style.display = 'none';
+
+      const item = document.createElement('div');
+      item.id = `img-card-${img.id}`;
+      item.className = 'bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 shadow-sm hover:border-slate-600 transition flex flex-col space-y-2';
+
+      const statusBadge = img.is_converted
+        ? '<span id="img-status-' + img.id + '" class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium"><i class="fa-solid fa-check mr-1"></i> Converted</span>'
+        : '<span id="img-status-' + img.id + '" class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium"><i class="fa-solid fa-clock mr-1"></i> Unconverted</span>';
+
+      const convertBtn = img.is_converted
+        ? '<button disabled class="text-xs bg-slate-800 text-slate-500 px-2.5 py-1.5 rounded-lg cursor-not-allowed"><i class="fa-solid fa-check mr-1"></i> PDF Created</button>'
+        : `<button onclick="convertImage(${img.id}, this)" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-2.5 py-1.5 rounded-lg transition shadow-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Convert to PDF</button>`;
+
+      const captionHtml = img.caption
+        ? `<div class="text-xs text-slate-300 italic bg-slate-800/50 px-2 py-1 rounded">"${img.caption}"</div>`
+        : '';
+
+      item.innerHTML = `
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center space-x-1.5 truncate">
+            <i class="fa-solid fa-user text-slate-500"></i>
+            <span class="font-mono font-medium text-slate-200">+${img.sender}</span>
+          </div>
+          ${statusBadge}
+        </div>
+        
+        <div class="relative group cursor-pointer overflow-hidden rounded-lg bg-black/40 h-44 flex items-center justify-center border border-slate-800" onclick="zoomImage('${img.url}', '+${img.sender} photo')">
+          <img src="${img.url}" alt="WhatsApp photo" class="max-h-full max-w-full object-contain rounded transition duration-200 group-hover:scale-105">
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-sm">
+            <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> View Full
+          </div>
+        </div>
+
+        ${captionHtml}
+
+        <div class="flex items-center justify-between pt-1">
+          <a href="${img.url}" download="${img.filename}" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg transition border border-slate-700">
+            <i class="fa-solid fa-download mr-1"></i> Download
+          </a>
+          ${convertBtn}
+        </div>
+      `;
+
+      if (prepend) {
+        container.insertBefore(item, container.firstChild);
+      } else {
+        container.appendChild(item);
+      }
+      updateCounters();
+    }
+
+    function renderPdf(pdf, prepend = false) {
+      const container = document.getElementById('pdfs-container');
+      const emptyState = document.getElementById('pdfs-empty');
+      if (emptyState) emptyState.style.display = 'none';
+
+      const item = document.createElement('div');
+      item.id = `pdf-card-${pdf.id}`;
+      item.className = 'bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 shadow-sm hover:border-slate-600 transition flex flex-col space-y-2.5';
+
+      item.innerHTML = `
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center space-x-1.5 truncate">
+            <i class="fa-solid fa-file-pdf text-purple-400"></i>
+            <span class="font-medium text-white truncate max-w-[150px]">${pdf.filename}</span>
+          </div>
+          <span class="text-[11px] text-slate-500">${formatTime(pdf.created_at)}</span>
+        </div>
+
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="bg-purple-500/10 border border-purple-500/30 text-purple-300 px-2 py-0.5 rounded-md font-medium">
+            <i class="fa-regular fa-file mr-1"></i>${pdf.page_count} ${pdf.page_count === 1 ? 'page' : 'pages'}
+          </span>
+          <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-medium">
+            <i class="fa-solid fa-hard-drive mr-1"></i>${pdf.file_size}
+          </span>
+          <span class="text-[11px] text-slate-400 ml-auto font-mono truncate">
+            +${pdf.sender}
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1 border-t border-slate-800">
+          <button onclick="viewPdf('${pdf.url}', '${pdf.filename}')" class="flex-1 text-xs bg-purple-600 hover:bg-purple-500 text-white font-medium py-1.5 rounded-lg transition text-center shadow-sm">
+            <i class="fa-solid fa-eye mr-1"></i> Preview
+          </button>
+          <a href="${pdf.url}" download="${pdf.filename}" class="flex-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-1.5 rounded-lg transition text-center">
+            <i class="fa-solid fa-download mr-1"></i> Download
+          </a>
+        </div>
+      `;
+
+      if (prepend) {
+        container.insertBefore(item, container.firstChild);
+      } else {
+        container.appendChild(item);
+      }
+      updateCounters();
+    }
+
+    function updateCounters() {
+      const msgCount = document.querySelectorAll('#messages-container > div[id^="msg-"]').length;
+      const imgCount = document.querySelectorAll('#images-container > div[id^="img-card-"]').length;
+      const pdfCount = document.querySelectorAll('#pdfs-container > div[id^="pdf-card-"]').length;
+
+      document.getElementById('stat-messages-count').textContent = msgCount;
+      document.getElementById('stat-images-count').textContent = imgCount;
+      document.getElementById('stat-pdfs-count').textContent = pdfCount;
+
+      document.getElementById('badge-messages-count').textContent = msgCount;
+      document.getElementById('badge-images-count').textContent = imgCount;
+      document.getElementById('badge-pdfs-count').textContent = pdfCount;
+    }
+
+    // Clear all action
+    async function executeClearAll() {
+      closeModal('clear-confirm-modal');
+      try {
+        const res = await fetch('/api/clear', { method: 'POST' });
+        if (res.ok) {
+          clearUI();
+          showToast('All messages, images and PDFs cleared!', 'success');
+        } else {
+          showToast('Failed to clear data', 'error');
+        }
+      } catch (err) {
+        showToast('Error executing clear', 'error');
+      }
+    }
+
+    function clearUI() {
+      document.getElementById('messages-container').innerHTML = `
+        <div id="messages-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+          <i class="fa-regular fa-message text-4xl mb-3 text-slate-600"></i>
+          <p class="text-sm font-medium">No messages received yet</p>
+          <p class="text-xs text-slate-500 mt-1">Incoming WhatsApp text messages will appear here in real-time.</p>
+        </div>
+      `;
+      document.getElementById('images-container').innerHTML = `
+        <div id="images-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+          <i class="fa-regular fa-image text-4xl mb-3 text-slate-600"></i>
+          <p class="text-sm font-medium">No images received yet</p>
+          <p class="text-xs text-slate-500 mt-1">Photos sent on WhatsApp will appear here with instant conversion controls.</p>
+        </div>
+      `;
+      document.getElementById('pdfs-container').innerHTML = `
+        <div id="pdfs-empty" class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+          <i class="fa-regular fa-file-pdf text-4xl mb-3 text-slate-600"></i>
+          <p class="text-sm font-medium">No PDFs generated yet</p>
+          <p class="text-xs text-slate-500 mt-1">Converted documents will show with page counts, file size, preview, and download buttons.</p>
+        </div>
+      `;
+      updateCounters();
+    }
+
+    // Simulator Tab Switcher
+    function switchSimTab(tab) {
+      if (tab === 'text') {
+        document.getElementById('sim-text-form').classList.remove('hidden');
+        document.getElementById('sim-image-form').classList.add('hidden');
+        document.getElementById('tab-btn-sim-text').className = 'flex-1 pb-2 font-medium text-xs text-indigo-400 border-b-2 border-indigo-500';
+        document.getElementById('tab-btn-sim-image').className = 'flex-1 pb-2 font-medium text-xs text-slate-400 border-b-2 border-transparent hover:text-slate-200';
+      } else {
+        document.getElementById('sim-image-form').classList.remove('hidden');
+        document.getElementById('sim-text-form').classList.add('hidden');
+        document.getElementById('tab-btn-sim-image').className = 'flex-1 pb-2 font-medium text-xs text-emerald-400 border-b-2 border-emerald-500';
+        document.getElementById('tab-btn-sim-text').className = 'flex-1 pb-2 font-medium text-xs text-slate-400 border-b-2 border-transparent hover:text-slate-200';
+      }
+    }
+
+    // Simulator Handlers
+    async function handleSimulateText(e) {
+      e.preventDefault();
+      const sender = document.getElementById('sim-text-sender').value;
+      const text = document.getElementById('sim-text-body').value;
+      const formData = new FormData();
+      formData.append('sender', sender);
+      formData.append('text', text);
+
+      try {
+        const res = await fetch('/api/simulate/text', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          showToast('Simulated text message dispatched!', 'success');
+          closeModal('simulator-modal');
+        } else {
+          showToast('Simulation failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error simulating message', 'error');
+      }
+    }
+
+    async function handleSimulateImage(e) {
+      e.preventDefault();
+      const sender = document.getElementById('sim-image-sender').value;
+      const caption = document.getElementById('sim-image-caption').value;
+      const fileInput = document.getElementById('sim-image-file');
+
+      if (!fileInput.files.length) {
+        showToast('Please select an image file', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('sender', sender);
+      formData.append('caption', caption);
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/simulate/image', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          showToast('Simulated image uploaded & processed!', 'success');
+          closeModal('simulator-modal');
+          fileInput.value = '';
+        } else {
+          showToast('Simulation failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error uploading simulated photo', 'error');
+      }
+    }
+
+    // Initial Data Fetch
+    async function loadInitialData() {
+      try {
+        const res = await fetch('/api/data');
+        const data = await res.json();
+        updateToggleUI(data.auto_convert);
+
+        if (data.messages && data.messages.length) {
+          data.messages.forEach(msg => renderMessage(msg));
+        }
+        if (data.images && data.images.length) {
+          data.images.forEach(img => renderImage(img));
+        }
+        if (data.pdfs && data.pdfs.length) {
+          data.pdfs.forEach(pdf => renderPdf(pdf));
+        }
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+      }
+    }
+
+    // Server-Sent Events (SSE) Setup
+    function initSSE() {
+      const dot = document.getElementById('sse-status-dot');
+      const text = document.getElementById('sse-status-text');
+
+      const eventSource = new EventSource('/api/events');
+
+      eventSource.addEventListener('connected', () => {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 pulse-dot inline-block';
+        text.className = 'text-emerald-400 font-medium';
+        text.textContent = 'Live SSE Connected';
+      });
+
+      eventSource.addEventListener('new_message', (e) => {
+        const msg = JSON.parse(e.data);
+        renderMessage(msg, true);
+        showToast(`New message from +${msg.sender}`, 'info');
+      });
+
+      eventSource.addEventListener('new_image', (e) => {
+        const img = JSON.parse(e.data);
+        renderImage(img, true);
+        showToast(`New photo from +${img.sender}`, 'info');
+      });
+
+      eventSource.addEventListener('new_pdf', (e) => {
+        const pdf = JSON.parse(e.data);
+        renderPdf(pdf, true);
+        showToast(`PDF created: ${pdf.filename} (${pdf.page_count} pgs)`, 'success');
+      });
+
+      eventSource.addEventListener('image_updated', (e) => {
+        const data = JSON.parse(e.data);
+        const pill = document.getElementById(`img-status-${data.id}`);
+        if (pill) {
+          pill.className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium';
+          pill.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Converted';
+        }
+      });
+
+      eventSource.addEventListener('images_updated', (e) => {
+        const data = JSON.parse(e.data);
+        if (data.updated_ids) {
+          data.updated_ids.forEach(id => {
+            const pill = document.getElementById(`img-status-${id}`);
+            if (pill) {
+              pill.className = 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium';
+              pill.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Converted';
+            }
+          });
+        }
+      });
+
+      eventSource.addEventListener('setting_updated', (e) => {
+        const data = JSON.parse(e.data);
+        updateToggleUI(data.auto_convert);
+      });
+
+      eventSource.addEventListener('clear_all', () => {
+        clearUI();
+        showToast('Workspace data was cleared', 'info');
+      });
+
+      eventSource.onerror = () => {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500 inline-block';
+        text.className = 'text-amber-400 font-medium';
+        text.textContent = 'Reconnecting...';
+      };
+    }
+
+    // Auto-populate webhook URL based on current host
+    function initWebhookUrl() {
+      const host = window.location.origin;
+      const urlDisplay = document.getElementById('webhook-url-display');
+      if (urlDisplay) {
+        urlDisplay.textContent = `${host}/webhook`;
+      }
+    }
+
+    // Bootstrap
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebhookUrl();
+      loadInitialData();
+      initSSE();
+    });
+  </script>
+</body>
+</html>
